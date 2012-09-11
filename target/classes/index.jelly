@@ -1,6 +1,0 @@
-<!--
-  This view is used to render the installed plugins page.
--->
-<div>
-  This plugin integrates SourceGear Vault/Fortress SCM to Jenkins. (Only limited functionality is implemented)
-</div>
