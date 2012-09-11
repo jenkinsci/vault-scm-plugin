@@ -40,9 +40,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import sun.nio.cs.ext.ISCII91;
 
-@Extension
-public final class VaultSCM extends SCM {
+public class VaultSCM extends SCM {
 	
 	public static class VaultSCMDescriptor extends
 	SCMDescriptor<VaultSCM> {
@@ -82,9 +82,15 @@ public final class VaultSCM extends SCM {
 	private String vaultSCMExecutable;
 	private String path; //path in repository. Starts with $ sign.
 	private Boolean ssl; //ssl enabled?
-	private String merge; //merge options: automatic, overwrite, later
+	private String merge = "overwrite"; //merge options: automatic, overwrite, later
+        private Boolean makeWriteable;
 	
-	
+	public Boolean getMakeWriteable() {
+            return makeWriteable;
+        }
+        public void setMakeWriteable( Boolean makeWriteable ) {
+            this.makeWriteable = makeWriteable;
+        }
 	public Boolean getSsl() {
 		return ssl;
 	}
@@ -92,6 +98,10 @@ public final class VaultSCM extends SCM {
 		this.ssl = ssl;
 	}
 	public String getMerge() {
+            if ( merge == null || merge.isEmpty() )
+            {
+                this.merge = "overwrite";
+            }
 		return merge;
 	}
 	public void setMerge(String merge) {
@@ -147,7 +157,7 @@ public final class VaultSCM extends SCM {
 
 	@DataBoundConstructor
 	public VaultSCM(String server, String path, String userName,
-			String password, String repository, String vaultSCMExecutable, Boolean ssl, String merge) {
+			String password, String repository, String vaultSCMExecutable, Boolean ssl, String merge, Boolean makeWriteable) {
 		this.server = server;
 		this.userName = userName;
 		this.password = password;
@@ -155,7 +165,8 @@ public final class VaultSCM extends SCM {
 		this.vaultSCMExecutable = vaultSCMExecutable;
 		this.path = path;
 		this.ssl = ssl; //Default to true
-		this.merge = merge;
+		this.merge = merge.isEmpty() ? "overwrite" : merge;
+                this.makeWriteable = makeWriteable;
 	}
 	
     @Override
@@ -226,7 +237,14 @@ public final class VaultSCM extends SCM {
     	
     	if (this.ssl)
     		argBuildr.add("-ssl");
-    	
+
+    	if (this.ssl)
+    		argBuildr.add("-ssl");
+        
+        if ( this.makeWriteable)
+                argBuildr.add("-makewritable");
+
+        
     	argBuildr.add("-merge",merge);
     	argBuildr.add("-workingfolder",workspace.getRemote() );
     	argBuildr.add(this.path);
@@ -389,9 +407,19 @@ public final class VaultSCM extends SCM {
 	}
 	
 	
-	
-	
+    private final static String[] MERGE_OPTION_STRINGS = new String[] {
+        "automatic",
+        "overwrite",
+        "later",
+    };
     
-    
+    private final static List<String> MERGE_OPTIONS = new ArrayList<String>();
+    static {
+        MERGE_OPTIONS.addAll(Arrays.asList(MERGE_OPTION_STRINGS));
+    }
+        
+    public List<String> getMergeOptions() {
+        return MERGE_OPTIONS;
+    }
 
 }

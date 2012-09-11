@@ -20,14 +20,17 @@
       <f:textbox name="VaultSCM.path" value="${scm.path}" />
     </f:entry>
     <f:entry title="Enable SSL">
-    <f:checkbox name="VaultSCM.ssl" checked="${h.defaultToTrue(scm.ssl)}"/>
+    <f:checkbox name="VaultSCM.ssl" checked="${h.defaultToFalse(scm.ssl)}"/>
+    </f:entry>
+    <f:entry title="Set files writable">
+    <f:checkbox name="VaultSCM.makeWriteable" checked="${h.defaultToTrue(scm.makeWriteable)}"/>
     </f:entry>
     <f:entry name="VaultSCM.merge" title="Merge type" field="VaultSCM.merge">
-            <select name="VaultSCM.merge">
-                <option value="automatic">automatic</option>
-                <option value="overwrite">overwrite</option>
-                <option value="later">later</option>
-            </select>
-        </f:entry> 
+      <select name="VaultSCM.merge">
+        <j:forEach var="mo" items="${scm.getMergeOptions()}">
+          <f:option value="${mo}" selected="${mo==scm.merge}">${mo}</f:option>
+        </j:forEach>
+      </select>
+    </f:entry> 
   </f:section> 
 </j:jelly>
