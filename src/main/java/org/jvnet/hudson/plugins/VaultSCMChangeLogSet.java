@@ -64,10 +64,10 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
 			return "Changed: ".concat(" Version: ").concat(version).concat(" Comment: ").concat(comment);
 		}
 		
-		@Override
-		public String getMsgAnnotated() {
-			return comment;
-		}
+//		@Override
+//		public String getMsgAnnotated() {
+//			return comment;
+//		}
 			
 		public String getVersion(){
 			return version;
