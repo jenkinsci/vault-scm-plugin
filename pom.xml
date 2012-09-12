@@ -1,28 +1,52 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.jenkins-ci.plugins</groupId>
-    <artifactId>plugin</artifactId>
-    <version>1.437</version><!-- which version of Jenkins is this plugin built against? -->
-  </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>plugin</artifactId>
+        <version>1.481</version><!-- which version of Jenkins is this plugin built against? -->
+    </parent>
 
-  <groupId>org.jvnet.hudson.plugins</groupId>
-  <artifactId>vault-scm-plugin</artifactId>
-  <version>1.1.9-SNAPSHOT</version>
-  <packaging>hpi</packaging>
+    <groupId>org.jvnet.hudson.plugins</groupId>
+    <artifactId>vault-scm-plugin</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+    <packaging>hpi</packaging>
 
-  <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
-  <repositories>
-    <repository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </repository>
-  </repositories>
+    <name>Jenkins SourceGear Vault Plug-in</name>
+    <description>Allows Jenkins to use SourceGear Vault SCM</description>
+    <url>http://wiki.jenkins-ci.org/display/JENKINS/Vault+Plugin</url>
+    <licenses>
+        <license>
+            <name>MIT license</name>
+            <comments>All source code is under the MIT license.</comments>
+        </license>
+    </licenses>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
+    <developers>
+        <developer>
+            <id>StuartWhelan</id>
+            <name>Stuart Whelan</name>
+            <email>vault-plugin@somepointinthefuture.co.nz</email>
+        </developer>
+    </developers>
+
+    <distributionManagement>
+        <repository>
+            <id>maven.jenkins-ci.org</id>
+            <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
