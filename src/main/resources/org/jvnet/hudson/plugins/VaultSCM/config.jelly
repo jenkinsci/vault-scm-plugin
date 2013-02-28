@@ -1,8 +1,13 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
   <f:section title="Vault SCM">
-    <f:entry title="Path to Vault executable" field="vaultExecutable">
-      <f:textbox/>
+    <f:entry title="Vault Version">
+        <select class="setting-input" name="VaultSCM.vaultName">
+            <option>(Default)</option>
+            <j:forEach var="inst" items="${descriptor.installations}">
+                <f:option selected="${inst.name==instance.vaultName}">${inst.name}</f:option>
+            </j:forEach>
+        </select>
     </f:entry>
     <f:entry title="Server name" field="serverName">
       <f:textbox/>
@@ -22,6 +27,12 @@
     <f:entry title="Enable SSL" field="sslEnabled">
     <f:checkbox name="VaultSCM.sslEnabled" checked="${h.defaultToFalse(scm.sslEnabled)}"/>
     </f:entry>
+    <f:entry title="Enable Verbose" field="verboseEnabled">
+    <f:checkbox name="VaultSCM.verboseEnabled" checked="${h.defaultToFalse(scm.verboseEnabled)}"/>
+    </f:entry>
+    <f:entry title="Use Non Working Folders" field="useNonWorkingFolder">
+    <f:checkbox name="VaultSCM.useNonWorkingFolder" checked="${h.defaultToTrue(scm.useNonWorkingFolder)}"/>
+    </f:entry>
     <f:entry title="Set files writable" field="makeWritableEnabled">
     <f:checkbox name="VaultSCM.makeWritableEnabled" checked="${h.defaultToTrue(scm.makeWritableEnabled)}"/>
     </f:entry>
@@ -29,6 +40,13 @@
       <select name="VaultSCM.merge">
         <j:forEach var="mo" items="${descriptor.mergeOptions}">
           <f:option value="${mo}" selected="${mo==scm.merge}">${mo}</f:option>
+        </j:forEach>
+      </select>
+    </f:entry> 
+    <f:entry name="VaultSCM.fileTime" title="Local File Time" field="VaultSCM.fileTime">
+      <select name="VaultSCM.fileTime">
+        <j:forEach var="ft" items="${descriptor.fileTimeOptions}">
+          <f:option value="${ft}" selected="${ft==scm.fileTime}">${ft}</f:option>
         </j:forEach>
       </select>
     </f:entry> 

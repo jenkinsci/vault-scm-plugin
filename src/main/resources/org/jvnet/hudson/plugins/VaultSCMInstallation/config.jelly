@@ -1,10 +1,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-
+  <f:entry title="${%Name}" field="name">
+    <f:textbox />
+  </f:entry>
   <f:section title="Vault SCM">
     <f:entry title="Path to Vault executable" field="vaultLocation">
       <f:textbox/>
     </f:entry>
-    <f:entry title="Server name" field="serverName">
+<!--    <f:entry title="Server name" field="serverName">
       <f:textbox/>
     </f:entry>
     <f:entry title="Username" field="userName">
@@ -25,12 +27,12 @@
     <f:entry title="Set files writable" field="makeWritableEnabled">
     <f:checkbox name="VaultSCM.makeWritableEnabled"/>
     </f:entry>
-    <f:entry name="VaultSCM.merge" title="Merge type" field="mergeOption">
-      <select name="VaultSCM.merge">
-        <f:option value="automatic" selected="${descriptor.mergeOption == automatic}">Automatic</f:option>
-        <f:option value="overwrite" selected="${descriptor.mergeOption == overwrite}">Overwrite</f:option>
-        <f:option value="later" selected="${descriptor.mergeOption == later}">Later</f:option>
+    <f:entry name="VaultSCM.mergeOption" title="Merge type" field="VaultSCM.mergeOption">
+      <select name="VaultSCM.mergeOption">
+        <f:option value="automatic" selected="${instance.mergeOption=='automatic'}">Automatic</f:option>
+        <f:option value="overwrite" selected="${instance.mergeOption=='overwrite'}">Overwrite</f:option>
+        <f:option value="later" selected="${instance.mergeOption=='later'}">Later</f:option>
       </select>
-    </f:entry> 
+    </f:entry> -->
   </f:section> 
 </j:jelly>
