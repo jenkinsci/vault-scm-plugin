@@ -16,6 +16,7 @@ import hudson.model.Computer;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
+import hudson.scm.ChangeLogSet;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
@@ -38,6 +39,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+import org.jvnet.hudson.plugins.VaultSCMChangeLogSet.*;
 
 public class VaultSCM extends SCM {
 
@@ -297,6 +299,20 @@ public class VaultSCM extends SCM {
         } else {
             return PollingResult.BUILD_NOW;
         }
+    }
+
+    @Override
+    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env){
+        super.buildEnvVars(build, env);
+        ChangeLogSet<VaultSCMChangeLogSetEntry> cls = (ChangeLogSet<VaultSCMChangeLogSetEntry>)build.getChangeSet();
+        Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
+        while (it.hasNext()) {
+            VaultSCMChangeLogSetEntry entry = it.next();
+            String version = entry.getVersion();
+            env.put("VAULT_FOLDER_VERSION", version);
+            break;
+        }
+
     }
 
     private boolean checkVaultPath(String path, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
