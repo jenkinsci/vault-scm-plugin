@@ -48,6 +48,7 @@ public final class VaultSCMInstallation extends ToolInstallation implements Node
      * The default vault install folder.
      */
     private static final String DEFAULT_VAULT_LOCATION = "C:\\Program Files (x86)\\SourceGear\\Vault Client\\vault.exe";
+    
     /**
      * The chosen vault install location.
      */

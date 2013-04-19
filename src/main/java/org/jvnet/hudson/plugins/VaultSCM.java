@@ -16,6 +16,7 @@ import hudson.model.Computer;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
+import hudson.scm.ChangeLogSet;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
@@ -38,6 +39,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+import org.jvnet.hudson.plugins.VaultSCMChangeLogSet.*;
 
 public class VaultSCM extends SCM {
 
@@ -56,10 +58,6 @@ public class VaultSCM extends SCM {
             load();
         }
 
-//        @hudson.init.Initializer(before=hudson.init.InitMilestone.PLUGINS_STARTED)
-//        public static void addAliases() {
-//            VaultSCMRevisionState.addCompatibilityAlias("org.jvnet.hudson.plugins.VaultSCMRevisionState", VaultSCMRevisionState.class);
-//        }
         public VaultSCMInstallation[] getInstallations() {
             return installations;
         }
@@ -297,6 +295,31 @@ public class VaultSCM extends SCM {
         } else {
             return PollingResult.BUILD_NOW;
         }
+    }
+
+    @Override
+    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env){
+        super.buildEnvVars(build, env);
+        String vaultFolderVersionName = "VAULT_FOLDER_VERSION";
+        if (build.getChangeSet() == null || build.getChangeSet().isEmptySet()) {
+            AbstractBuild<?, ?> previousBuild = build.getPreviousBuild();
+            if (previousBuild != null) {
+                buildEnvVars(previousBuild, env);
+            } else {
+                env.put(vaultFolderVersionName, "NOT_SET");
+            }
+                
+            return;
+        }
+        
+        @SuppressWarnings("unchecked")
+        ChangeLogSet<VaultSCMChangeLogSetEntry> cls = (ChangeLogSet<VaultSCMChangeLogSetEntry>)build.getChangeSet();
+        Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
+        if (it.hasNext()) {
+            VaultSCMChangeLogSetEntry entry = it.next();
+            env.put(vaultFolderVersionName, entry.getVersion());
+        } 
+
     }
 
     private boolean checkVaultPath(String path, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
