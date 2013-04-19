@@ -38,6 +38,7 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
 
     public static class VaultSCMChangeLogSetEntry extends ChangeLogSet.Entry {
 
+        @SuppressWarnings("rawtypes")
         public VaultSCMChangeLogSetEntry(String comment, String version, String date, ChangeLogSet parent, String userName) {
             this.affectedFile = "User defined path";
             this.comment = comment;
