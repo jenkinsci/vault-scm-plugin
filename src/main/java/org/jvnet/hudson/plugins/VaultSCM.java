@@ -58,10 +58,6 @@ public class VaultSCM extends SCM {
             load();
         }
 
-//        @hudson.init.Initializer(before=hudson.init.InitMilestone.PLUGINS_STARTED)
-//        public static void addAliases() {
-//            VaultSCMRevisionState.addCompatibilityAlias("org.jvnet.hudson.plugins.VaultSCMRevisionState", VaultSCMRevisionState.class);
-//        }
         public VaultSCMInstallation[] getInstallations() {
             return installations;
         }
@@ -304,14 +300,25 @@ public class VaultSCM extends SCM {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env){
         super.buildEnvVars(build, env);
+        String vaultFolderVersionName = "VAULT_FOLDER_VERSION";
+        if (build.getChangeSet() == null || build.getChangeSet().isEmptySet()) {
+            AbstractBuild<?, ?> previousBuild = build.getPreviousBuild();
+            if (previousBuild != null) {
+                buildEnvVars(previousBuild, env);
+            } else {
+                env.put(vaultFolderVersionName, "NOT_SET");
+            }
+                
+            return;
+        }
+        
+        @SuppressWarnings("unchecked")
         ChangeLogSet<VaultSCMChangeLogSetEntry> cls = (ChangeLogSet<VaultSCMChangeLogSetEntry>)build.getChangeSet();
         Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
-        while (it.hasNext()) {
+        if (it.hasNext()) {
             VaultSCMChangeLogSetEntry entry = it.next();
-            String version = entry.getVersion();
-            env.put("VAULT_FOLDER_VERSION", version);
-            break;
-        }
+            env.put(vaultFolderVersionName, entry.getVersion());
+        } 
 
     }
 
