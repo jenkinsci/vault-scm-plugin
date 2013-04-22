@@ -45,6 +45,7 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
             this.version = version;
             this.date = date;
             this.user = User.get(userName);
+            this.action = "edit";
             setParent(parent);
         }
 

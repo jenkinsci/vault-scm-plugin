@@ -30,7 +30,7 @@ public class VaultSCMChangeLogParser extends ChangeLogParser {
         String date;
         String comment;
         String version;
-        //open the changelog File
+        //open the change log File
         VaultSCMChangeLogSet cls = new VaultSCMChangeLogSet(build);
         try {
 
