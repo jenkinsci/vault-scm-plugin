@@ -22,6 +22,7 @@ import org.xml.sax.SAXException;
 public class VaultSCMChangeLogParser extends ChangeLogParser {
 
     @Override
+    @SuppressWarnings("rawtypes")
     public ChangeLogSet<? extends Entry> parse(AbstractBuild build,
             File changelogFile) throws IOException, SAXException {
 
