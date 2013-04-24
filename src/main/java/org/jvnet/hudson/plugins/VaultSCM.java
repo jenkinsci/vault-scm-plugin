@@ -284,11 +284,15 @@ public class VaultSCM extends SCM {
             FilePath workspace, TaskListener listener, SCMRevisionState baseline)
             throws IOException, InterruptedException {
 
-        Date lastBuild = ((VaultSCMRevisionState) baseline).getDate();
-        LOG.log(Level.INFO, "Last Build Date set to {0}", lastBuild.toString());
+        Date lastBuildDate = ((VaultSCMRevisionState) baseline).getDate();
+        if (lastBuildDate == null) {
+            AbstractBuild<?,?> lastBuild = project.getLastCompletedBuild();
+            lastBuildDate = lastBuild != null ? lastBuild.getTime() : new Date(2000, 1, 1);
+        }
+        LOG.log(Level.INFO, "Last Build Date set to {0}", lastBuildDate.toString());
         Date now = new Date();
         File temporaryFile = File.createTempFile("changes", ".txt");
-        int countChanges = determineChangeCount(launcher, workspace, listener, lastBuild, now, temporaryFile);
+        int countChanges = determineChangeCount(launcher, workspace, listener, lastBuildDate, now, temporaryFile);
         temporaryFile.delete();
         if (countChanges == 0) {
             return PollingResult.NO_CHANGES;
