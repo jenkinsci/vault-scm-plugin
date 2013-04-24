@@ -7,41 +7,42 @@ package org.jvnet.hudson.plugins;
 
 import hudson.scm.SCMRevisionState;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import org.jvnet.hudson.plugins.VaultSCM.VaultObjectProperties;
 
 public class VaultSCMRevisionState extends SCMRevisionState {
+    public VaultObjectProperties objectProperties;
+    // keep old member for the moment, in order to support persisted states in builds
+    public Date buildDate;
 
-    public Map<String, Long> revisions;
-
-    public VaultSCMRevisionState(Map<String, Long> revisions) {
-
-        this.revisions = revisions;
+    public VaultSCMRevisionState(VaultObjectProperties objectProperties) {
+        this.objectProperties = objectProperties;
     }
 
     public VaultSCMRevisionState() {
-
-        revisions = new HashMap<String, Long>();
-        buildDate = new Date();
+        objectProperties = new VaultObjectProperties();
     }
 
-    public void AddRevision(String key, long value) {
-        if (revisions == null) {
-            revisions = new HashMap<String, Long>();
-        }
-        revisions.put(key, value);
+    public void setModified(Date date) {
+        if (objectProperties == null)
+            return;
+        objectProperties.modified = date;
     }
 
-    public void setRevisions(Map<String, Long> revisions) {
-        this.revisions = revisions;
+    public Date getModified() {
+        if (objectProperties == null)
+            return buildDate;
+        return objectProperties.modified;
     }
-
-    public void setDate(Date date) {
-        buildDate = date;
+    
+    public void setVersion(String version) {
+        if (objectProperties == null)
+            return;
+        objectProperties.version = version;
     }
-
-    public Date getDate() {
-        return buildDate;
+    
+    public String getVersion() {
+        if (objectProperties == null)
+            return "";
+        return objectProperties.version;
     }
-    public Date buildDate;
 }

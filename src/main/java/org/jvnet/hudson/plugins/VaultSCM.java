@@ -112,6 +112,14 @@ public class VaultSCM extends SCM {
             return FormValidation.validateRequired(value);
         }
     }
+    
+    public static class VaultObjectProperties {
+        public String version;
+        public String objectID;
+        public Date modified;
+    }
+    
+
     //configuration variables from user interface
     private String serverName;
     private String userName;
@@ -238,6 +246,8 @@ public class VaultSCM extends SCM {
     //format dates for vault client
     public static final SimpleDateFormat VAULT_DATETIME_FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
+    public static final String VAULT_FOLDER_VERSION_NAME = "VAULT_FOLDER_VERSION";
+
     @DataBoundConstructor
     public VaultSCM(String serverName, String path, String userName,
             String password, String repositoryName, String vaultName,
@@ -270,8 +280,16 @@ public class VaultSCM extends SCM {
             InterruptedException {
 
         VaultSCMRevisionState scmRevisionState = new VaultSCMRevisionState();
+        // old date-based method
         final Date lastBuildDate = build.getTime();
-        scmRevisionState.setDate(lastBuildDate);
+        scmRevisionState.setModified(lastBuildDate);
+
+        // current version-based method
+        hudson.EnvVars environment = build.getEnvironment(listener);
+        String folderVersion = environment.get(VAULT_FOLDER_VERSION_NAME);
+        scmRevisionState.setVersion(folderVersion);
+        
+        listener.getLogger().println("calc revisions from build, folder version: " + folderVersion);
 
         return scmRevisionState;
     }
@@ -284,33 +302,51 @@ public class VaultSCM extends SCM {
             FilePath workspace, TaskListener listener, SCMRevisionState baseline)
             throws IOException, InterruptedException {
 
-        Date lastBuildDate = ((VaultSCMRevisionState) baseline).getDate();
-        if (lastBuildDate == null) {
-            AbstractBuild<?,?> lastBuild = project.getLastCompletedBuild();
-            lastBuildDate = lastBuild != null ? lastBuild.getTime() : new Date(2000, 1, 1);
-        }
-        LOG.log(Level.INFO, "Last Build Date set to {0}", lastBuildDate.toString());
-        Date now = new Date();
-        File temporaryFile = File.createTempFile("changes", ".txt");
-        int countChanges = determineChangeCount(launcher, workspace, listener, lastBuildDate, now, temporaryFile);
-        temporaryFile.delete();
-        if (countChanges == 0) {
+        // first try the version-based method
+        String oldVersion = ((VaultSCMRevisionState) baseline).getVersion();
+        if (oldVersion != null && !oldVersion.equals("")) {
+            listener.getLogger().println("Old folder version: " + oldVersion);
+            VaultObjectProperties objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
+            listener.getLogger().println("Current folder version: " + objectProperties.version);
+            if (objectProperties.version != oldVersion) {
+                return PollingResult.BUILD_NOW;
+            }
             return PollingResult.NO_CHANGES;
         } else {
-            return PollingResult.BUILD_NOW;
+            // then the date-based method
+            Date lastBuildDate = ((VaultSCMRevisionState) baseline).getModified();
+            if (lastBuildDate == null) {
+                AbstractBuild<?,?> lastBuild = project.getLastCompletedBuild();
+                lastBuildDate = lastBuild != null ? lastBuild.getTime() : new Date(2000, 1, 1);
+            }
+            LOG.log(Level.INFO, "Last Build Date set to {0}", lastBuildDate.toString());
+            Date now = new Date();
+            File temporaryFile = File.createTempFile("changes", ".txt");
+            int countChanges = determineChangeCount(launcher, workspace, listener, lastBuildDate, now, temporaryFile);
+            temporaryFile.delete();
+            if (countChanges == 0) {
+                return PollingResult.NO_CHANGES;
+            } else {
+                return PollingResult.BUILD_NOW;
+            }
         }
     }
 
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env){
         super.buildEnvVars(build, env);
-        String vaultFolderVersionName = "VAULT_FOLDER_VERSION";
+
+        // with the current implementation, the environment variable should already be available
+        String existingFolderVersion = env.get(VAULT_FOLDER_VERSION_NAME);
+        if (existingFolderVersion != null && !existingFolderVersion.equals("") )
+            return;
+        
         if (build.getChangeSet() == null || build.getChangeSet().isEmptySet()) {
             AbstractBuild<?, ?> previousBuild = build.getPreviousBuild();
             if (previousBuild != null) {
                 buildEnvVars(previousBuild, env);
             } else {
-                env.put(vaultFolderVersionName, "NOT_SET");
+                env.put(VAULT_FOLDER_VERSION_NAME, "NOT_SET");
             }
                 
             return;
@@ -321,7 +357,7 @@ public class VaultSCM extends SCM {
         Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
         if (it.hasNext()) {
             VaultSCMChangeLogSetEntry entry = it.next();
-            env.put(vaultFolderVersionName, entry.getVersion());
+            env.put(VAULT_FOLDER_VERSION_NAME, entry.getVersion());
         } 
 
     }
@@ -372,6 +408,11 @@ public class VaultSCM extends SCM {
     public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher,
             FilePath workspace, BuildListener listener, File changelogFile)
             throws IOException, InterruptedException {
+
+        // first get current version, then use GETVERSION so that the folder version property retrieved from vault and the files on disk are perfectly in sync
+        VaultObjectProperties objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
+        String folderVersion = objectProperties.version;
+
         boolean returnValue;
 
         String pathToVault = getVaultPath(launcher, listener);
@@ -383,12 +424,12 @@ public class VaultSCM extends SCM {
         if (serverName != null) {
             listener.getLogger().println("server: " + serverName);
         }
-        //populate the GET command
+        //populate the GETVERSION command
         //in some cases username, host and password can be empty e.g. if rememberlogin is used to store login data
         ArgumentListBuilder argBuildr = new ArgumentListBuilder();
 
         argBuildr.add(pathToVault);
-        argBuildr.add("GET");
+        argBuildr.add("GETVERSION");
 
         if (!serverName.isEmpty()) {
             argBuildr.add("-host", serverName);
@@ -432,6 +473,8 @@ public class VaultSCM extends SCM {
                     "-workingfolder", workspace.getRemote());
         }
         argBuildr.add(
+                folderVersion);
+        argBuildr.add(
                 this.path);
 
         int cmdResult = launcher.launch().cmds(argBuildr).envs(build.getEnvironment(TaskListener.NULL)).stdout(listener.getLogger()).pwd(workspace).join();
@@ -451,6 +494,12 @@ public class VaultSCM extends SCM {
             Date now = new Date(); //defaults to current
 
             returnValue = captureChangeLog(launcher, workspace, listener, lastBuildDate, now, changelogFile);
+            
+            // already set VAULT_FOLDER_VERSION in environment
+            hudson.EnvVars environment = build.getEnvironment(TaskListener.NULL);
+            environment.put(VAULT_FOLDER_VERSION_NAME, folderVersion);
+            listener.getLogger().println("Current folder version is " + folderVersion);
+            
         } else {
             returnValue = false;
         }
@@ -536,6 +585,88 @@ public class VaultSCM extends SCM {
         return result;
     }
 
+    private VaultObjectProperties getCurrentFolderProperties(Launcher launcher, FilePath workspace, TaskListener listener)
+            throws IOException, InterruptedException {
+        VaultObjectProperties result = new VaultObjectProperties();
+
+        String pathToVault = getVaultPath(launcher, listener);
+
+        if (pathToVault == null) {
+            return result;
+        }
+
+        File tempFile = File.createTempFile("objectproperties", "xml");
+        FileOutputStream os = new FileOutputStream(tempFile);
+        try {
+            BufferedOutputStream bos = new BufferedOutputStream(os);
+            PrintWriter writer = new PrintWriter(new FileWriter(tempFile));
+            try {
+
+                ArgumentListBuilder argBuildr = new ArgumentListBuilder();
+                argBuildr.add(pathToVault);
+                argBuildr.add("LISTOBJECTPROPERTIES");
+
+                if (!serverName.isEmpty()) {
+                    argBuildr.add("-host", serverName);
+                }
+
+                if (!userName.isEmpty()) {
+                    argBuildr.add("-user", userName);
+                }
+
+                if (!Secret.toString(password).isEmpty()) {
+                    argBuildr.add("-password");
+                    argBuildr.add(Secret.toString(password), true);
+                }
+
+                if (!repositoryName.isEmpty()) {
+                    argBuildr.add("-repository", repositoryName);
+                }
+
+                if (this.sslEnabled) {
+                    argBuildr.add("-ssl");
+                }
+
+                argBuildr.add(this.path);
+
+                int cmdResult = launcher.launch().cmds(argBuildr).envs(new String[0]).stdout(bos).pwd(workspace).join();
+                if (cmdResult != 0) {
+                    listener.fatalError("List object properties failed with exit code " + cmdResult);
+                }
+
+            } finally {
+                writer.close();
+                bos.close();
+            }
+        } finally {
+            os.close();
+        }
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(tempFile);
+            doc.getDocumentElement().normalize();
+            NodeList nodeLst = doc.getElementsByTagName("version");
+            if (nodeLst.getLength() == 1) {
+                result.version = nodeLst.item(0).getTextContent();
+            }
+            nodeLst = doc.getElementsByTagName("objectid");
+            if (nodeLst.getLength() == 1) {
+                result.objectID = nodeLst.item(0).getTextContent();
+            }
+            nodeLst = doc.getElementsByTagName("modifieddate");
+            if (nodeLst.getLength() == 1) {
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
+                result.modified = simpleDateFormat.parse(nodeLst.item(0).getTextContent());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        tempFile.delete();
+        return result;
+    }
+    
     private int determineChangeCount(Launcher launcher, FilePath workspace,
             TaskListener listener, Date lastBuildDate, Date currentDate, File changelogFile) throws IOException, InterruptedException {
 
