@@ -275,43 +275,31 @@ public class VaultSCM extends SCM {
     }
 
     @Override
-    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build,
-            Launcher launcher, TaskListener listener) throws IOException,
-            InterruptedException {
+    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) 
+            throws IOException, InterruptedException {
 
+        // this should not be called anymore, as the revision state is already added to the build in checkout()
         VaultSCMRevisionState scmRevisionState = new VaultSCMRevisionState();
-        // old date-based method
-        final Date lastBuildDate = build.getTime();
-        scmRevisionState.setModified(lastBuildDate);
-
-        // current version-based method
-        hudson.EnvVars environment = build.getEnvironment(listener);
-        String folderVersion = environment.get(VAULT_FOLDER_VERSION_NAME);
-        scmRevisionState.setVersion(folderVersion);
-        
-        listener.getLogger().println("calc revisions from build, folder version: " + folderVersion);
-
         return scmRevisionState;
     }
 
     @Override
     /* 
      */
-    protected PollingResult compareRemoteRevisionWith(
-            AbstractProject<?, ?> project, Launcher launcher,
-            FilePath workspace, TaskListener listener, SCMRevisionState baseline)
+    protected PollingResult compareRemoteRevisionWith(AbstractProject<?, ?> project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState baseline)
             throws IOException, InterruptedException {
 
         // first try the version-based method
         String oldVersion = ((VaultSCMRevisionState) baseline).getVersion();
         if (oldVersion != null && !oldVersion.equals("")) {
-            listener.getLogger().println("Old folder version: " + oldVersion);
             VaultObjectProperties objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
-            listener.getLogger().println("Current folder version: " + objectProperties.version);
-            if (objectProperties.version != oldVersion) {
-                return PollingResult.BUILD_NOW;
+            String logFolderVersions = "folder versions: old = " + oldVersion + ", new = " + objectProperties.version;
+            LOG.log(Level.INFO, "project name = " + project.getDisplayName() + ", " + logFolderVersions);
+            listener.getLogger().println(logFolderVersions);
+            if (objectProperties.version.equals(oldVersion)) {
+                return PollingResult.NO_CHANGES;
             }
-            return PollingResult.NO_CHANGES;
+            return PollingResult.BUILD_NOW;
         } else {
             // then the date-based method
             Date lastBuildDate = ((VaultSCMRevisionState) baseline).getModified();
@@ -319,7 +307,7 @@ public class VaultSCM extends SCM {
                 AbstractBuild<?,?> lastBuild = project.getLastCompletedBuild();
                 lastBuildDate = lastBuild != null ? lastBuild.getTime() : new Date(2000, 1, 1);
             }
-            LOG.log(Level.INFO, "Last Build Date set to {0}", lastBuildDate.toString());
+            LOG.log(Level.INFO, "project name = " + project.getDisplayName() + ", Last Build Date set to " + lastBuildDate.toString());
             Date now = new Date();
             File temporaryFile = File.createTempFile("changes", ".txt");
             int countChanges = determineChangeCount(launcher, workspace, listener, lastBuildDate, now, temporaryFile);
@@ -335,11 +323,15 @@ public class VaultSCM extends SCM {
     @Override
     public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env){
         super.buildEnvVars(build, env);
+        LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName() + ", set environment");
 
-        // with the current implementation, the environment variable should already be available
-        String existingFolderVersion = env.get(VAULT_FOLDER_VERSION_NAME);
-        if (existingFolderVersion != null && !existingFolderVersion.equals("") )
+        // with the new implementation, the revision state will be part of the build after checkout()
+        VaultSCMRevisionState revisionState = build.getAction(VaultSCMRevisionState.class);
+        if (revisionState != null && revisionState.objectProperties != null) {
+            LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName() + ", (from build action) set VAULT_FOLDER_VERSION_NAME to " + revisionState.objectProperties.version);
+            env.put(VAULT_FOLDER_VERSION_NAME, revisionState.objectProperties.version);
             return;
+        }
         
         if (build.getChangeSet() == null || build.getChangeSet().isEmptySet()) {
             AbstractBuild<?, ?> previousBuild = build.getPreviousBuild();
@@ -357,6 +349,7 @@ public class VaultSCM extends SCM {
         Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
         if (it.hasNext()) {
             VaultSCMChangeLogSetEntry entry = it.next();
+            LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName() + ", set VAULT_FOLDER_VERSION_NAME to " + entry.getVersion());
             env.put(VAULT_FOLDER_VERSION_NAME, entry.getVersion());
         } 
 
@@ -408,6 +401,7 @@ public class VaultSCM extends SCM {
     public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher,
             FilePath workspace, BuildListener listener, File changelogFile)
             throws IOException, InterruptedException {
+        LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName());
 
         // first get current version, then use GETVERSION so that the folder version property retrieved from vault and the files on disk are perfectly in sync
         VaultObjectProperties objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
@@ -494,10 +488,10 @@ public class VaultSCM extends SCM {
 
             returnValue = captureChangeLog(launcher, workspace, listener, lastBuildDate, now, changelogFile);
             
-            // already set VAULT_FOLDER_VERSION in environment
-            hudson.EnvVars environment = build.getEnvironment(TaskListener.NULL);
-            environment.put(VAULT_FOLDER_VERSION_NAME, folderVersion);
-            listener.getLogger().println("Current folder version is " + folderVersion);
+            // already add the revision state to the build, this is mainly done to communicate the current object properties
+            // to buildEnvVars()
+            VaultSCMRevisionState revisionState = new VaultSCMRevisionState(objectProperties);
+            build.addAction(revisionState);
             
         } else {
             returnValue = false;
