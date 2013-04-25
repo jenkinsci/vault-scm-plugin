@@ -465,17 +465,16 @@ public class VaultSCM extends SCM {
                 "-merge", merge);
         argBuildr.add(
                 "-setfiletime", fileTime);
-        if (this.useNonWorkingFolder) {
+        if (!this.useNonWorkingFolder) {
             argBuildr.add(
-                    "-nonworkingfolder", workspace.getRemote());
-        } else {
-            argBuildr.add(
-                    "-workingfolder", workspace.getRemote());
+                    "-useworkingfolder");
         }
         argBuildr.add(
                 folderVersion);
         argBuildr.add(
                 this.path);
+        argBuildr.add(
+                workspace.getRemote());
 
         int cmdResult = launcher.launch().cmds(argBuildr).envs(build.getEnvironment(TaskListener.NULL)).stdout(listener.getLogger()).pwd(workspace).join();
         if (cmdResult
