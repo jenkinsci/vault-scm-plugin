@@ -226,6 +226,19 @@ public class VaultSCM extends SCM {
         return repositoryName;
     }
 
+    public String getRepositoryId() {
+        // TODO: query from vault
+        if (repositoryName.equals("KernelSourceSafe")) {
+            return "2";
+        } else if (repositoryName.equals("Scratch")) {
+            return "6";
+        } else if (repositoryName.equals("SourceSafe")) {
+            return "3";
+        } else
+            return "";      
+    }
+
+
     public void setRepositoryName(String repositoryName) {
         this.repositoryName = repositoryName;
     }
@@ -527,7 +540,7 @@ public class VaultSCM extends SCM {
 
                 ArgumentListBuilder argBuildr = new ArgumentListBuilder();
                 argBuildr.add(pathToVault);
-                argBuildr.add("VERSIONHISTORY");
+                argBuildr.add("HISTORY");
 
                 if (!serverName.isEmpty()) {
                     argBuildr.add("-host", serverName);
