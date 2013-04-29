@@ -415,9 +415,6 @@ public class VaultSCM extends SCM {
             return false;
         }
 
-        if (serverName != null) {
-            listener.getLogger().println("server: " + serverName);
-        }
         //populate the GETVERSION command
         //in some cases username, host and password can be empty e.g. if rememberlogin is used to store login data
         ArgumentListBuilder argBuildr = new ArgumentListBuilder();

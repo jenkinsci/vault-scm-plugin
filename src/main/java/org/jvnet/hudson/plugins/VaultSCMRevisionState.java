@@ -10,9 +10,12 @@ import java.util.Date;
 import org.jvnet.hudson.plugins.VaultSCM.VaultObjectProperties;
 
 public class VaultSCMRevisionState extends SCMRevisionState {
+
     public VaultObjectProperties objectProperties;
     // keep old member for the moment, in order to support persisted states in builds
     public Date buildDate;
+    public String folderVersion;
+    public String revisions;
 
     public VaultSCMRevisionState(VaultObjectProperties objectProperties) {
         this.objectProperties = objectProperties;

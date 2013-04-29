@@ -6,6 +6,7 @@
 package org.jvnet.hudson.plugins;
 
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.EditType;
@@ -16,7 +17,7 @@ import org.jvnet.hudson.plugins.VaultSCMChangeLogSet.VaultSCMChangeLogSetEntry;
 import org.kohsuke.stapler.export.Exported;
 
 public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSetEntry> {
-
+    
     protected VaultSCMChangeLogSet(AbstractBuild<?, ?> build) {
         super(build);
         changes = new ArrayList<VaultSCMChangeLogSetEntry>();
@@ -39,10 +40,11 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
     public static class VaultSCMChangeLogSetEntry extends ChangeLogSet.Entry {
 
         @SuppressWarnings("rawtypes")
-        public VaultSCMChangeLogSetEntry(String comment, String version, String date, ChangeLogSet parent, String userName) {
+        public VaultSCMChangeLogSetEntry(String comment, String version, String date, ChangeLogSet parent, String userName, String transactionId) {
             this.affectedFile = "User defined path";
             this.comment = comment;
             this.version = version;
+            this.transactionId = transactionId;
             this.date = date;
             this.user = User.get(userName);
             this.action = "edit";
@@ -54,14 +56,6 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
 
         @Override
         public String getMsg() {
-            return "Changed: ".concat(" Version: ").concat(version).concat(" Comment: ").concat(comment);
-        }
-
-        public String getVersion() {
-            return version;
-        }
-
-        public String getComment() {
             return comment;
         }
 
@@ -80,6 +74,24 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
             return user;
         }
 
+        public String getVersion() {
+            return version;
+        }
+
+        public String getComment() {
+            return comment;
+        }
+        
+        public String getTxId() {
+            return transactionId;
+        }
+
+        public String getUrl() {
+            AbstractProject<?,?> project = (AbstractProject<?,?>)getParent().build.getParent();
+            VaultSCM scm = (VaultSCM)project.getScm();
+            return scm.getServerName();
+        }
+        
         @Exported
         public EditType getEditType() {
             if (action.equalsIgnoreCase("delete")) {
@@ -95,11 +107,13 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
         String getPath() {
             return affectedFile;
         }
-        private String comment;
+        String comment;
         String affectedFile;
         String version;
+        String transactionId;
         String date;
-        private User user;
-        private String action; //default is edit	
+        User user;
+
+        String action; //default is edit	
     }
 }

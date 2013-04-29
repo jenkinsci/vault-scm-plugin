@@ -20,7 +20,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class VaultSCMChangeLogParser extends ChangeLogParser {
-
+    
     @Override
     @SuppressWarnings("rawtypes")
     public ChangeLogSet<? extends Entry> parse(AbstractBuild build,
@@ -30,6 +30,7 @@ public class VaultSCMChangeLogParser extends ChangeLogParser {
         String date;
         String comment;
         String version;
+        String transactionId;
         //open the change log File
         VaultSCMChangeLogSet cls = new VaultSCMChangeLogSet(build);
         try {
@@ -47,10 +48,9 @@ public class VaultSCMChangeLogParser extends ChangeLogParser {
                 date = mostRecentChange.getAttribute("date");
                 comment = mostRecentChange.getAttribute("comment");
                 version = mostRecentChange.getAttribute("version");
+                transactionId = mostRecentChange.getAttribute("txid");
 
-
-
-                VaultSCMChangeLogSetEntry next = new VaultSCMChangeLogSetEntry(comment, version, date, cls, userName);
+                VaultSCMChangeLogSetEntry next = new VaultSCMChangeLogSetEntry(comment, version, date, cls, userName, transactionId);
                 if (!cls.addEntry(next)) {
                     break;
                 }

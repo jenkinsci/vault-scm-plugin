@@ -1,19 +1,21 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+
   <h2>${%Summary}</h2>
   <ol>
-    <j:forEach var="cs" items="${it.logs}">
+    <j:forEach var="cs" items="${it.items}">
       <li><st:out value="${cs.msg}"/></li>
     </j:forEach>
-  </ol>
-  
-   <table class="pane" style="border:none">
+  </ol>  
+  <table class="pane" style="border:none">
     <j:forEach var="cs" items="${it.items}" varStatus="loop">
       <tr class="pane">
         <td colspan="2" class="changeset">
           <a name="detail${loop.index}"></a>
           <div class="changeset-message">
             <b>
-              Info :
+              Version <a href="http://${cs.url}/VaultService/VaultWeb/TransactionDetails.aspx?repid=2&amp;txid=${cs.txId}">${cs.version}</a>
+              by <a href="${rootURL}/${cs.author.url}/">${cs.author}</a>
             </b><br/>
             ${cs.msgAnnotated}
           </div>
