@@ -362,8 +362,9 @@ public class VaultSCM extends SCM {
         Iterator<VaultSCMChangeLogSetEntry> it = cls.iterator();
         if (it.hasNext()) {
             VaultSCMChangeLogSetEntry entry = it.next();
-            LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName() + ", set VAULT_FOLDER_VERSION_NAME to " + entry.getVersion());
-            env.put(VAULT_FOLDER_VERSION_NAME, entry.getVersion());
+            String version = entry.getVersion() == null ? "unknown" : entry.getVersion();
+            LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName() + ", set VAULT_FOLDER_VERSION_NAME to " + version);
+            env.put(VAULT_FOLDER_VERSION_NAME, version);
         } 
 
     }
