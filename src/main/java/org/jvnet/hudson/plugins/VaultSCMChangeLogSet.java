@@ -9,7 +9,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
-import hudson.scm.ChangeLogSet.AffectedFile;
 import hudson.scm.EditType;
 import java.util.ArrayList;
 import java.util.Collection;
