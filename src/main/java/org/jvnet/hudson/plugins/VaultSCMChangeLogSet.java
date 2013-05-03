@@ -10,6 +10,9 @@ import hudson.model.AbstractProject;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.EditType;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,6 +20,7 @@ import java.util.List;
 
 import org.jvnet.hudson.plugins.VaultSCMChangeLogSet.VaultSCMChangeLogSetEntry;
 import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSetEntry> {
     
@@ -67,7 +71,6 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
             return affectedFiles;
         }
 
-        @Exported
         public List<VaultAffectedFile> getItems() {
             return affectedFiles;
         }
@@ -78,8 +81,22 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
         }
 
         @Override
+        public long getTimestamp() {
+            SimpleDateFormat dateFormat = new SimpleDateFormat();
+            try {
+                return dateFormat.parse(date).getTime();
+            } catch (ParseException e) {
+                return -1;
+            }          
+        }
+        
+        @Override
         public Collection<String> getAffectedPaths() {
-            return null;
+            Collection<String> paths = new ArrayList<String>(affectedFiles.size());
+            for (AffectedFile file : affectedFiles) {
+                paths.add(file.getPath());
+            }
+            return paths;
         }
 
         @Override
@@ -90,6 +107,16 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
             return user;
         }
 
+        @Override
+        public String getCommitId() {
+            return transactionId;
+        }
+        
+        @Exported
+        public String getFolderVersion() {
+            return version;
+        }
+        
         public String getTransactionId() {
             return transactionId;
         }
@@ -156,6 +183,7 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
 
         List<VaultAffectedFile> affectedFiles;
         
+        @ExportedBean
         public static class VaultAffectedFile implements ChangeLogSet.AffectedFile {
             String version;
             String path;
@@ -168,15 +196,17 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
                 this.version = version;
             }
     
-            
+            @Exported
             public String getPath() {
                 return path;
             }
     
+            @Exported
             public EditType getEditType() {
                 return editType;
             }
             
+            @Exported
             public String getVersion() {
                 return version;
             }
