@@ -5,16 +5,8 @@
  */
 package org.jvnet.hudson.plugins;
 
-import hudson.CopyOnWrite;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.*;
+import hudson.model.*;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.PollingResult;
@@ -33,6 +25,8 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
+import hudson.util.VariableResolver;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -260,6 +254,7 @@ public class VaultSCM extends SCM {
     public static final SimpleDateFormat VAULT_DATETIME_FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
     public static final String VAULT_FOLDER_VERSION_NAME = "VAULT_FOLDER_VERSION";
+    public static final String SPECIFIC_VAULT_FOLDER_VERSION_NAME = "SPECIFIC_VAULT_FOLDER_VERSION";
 
     @DataBoundConstructor
     public VaultSCM(String serverName, String path, String userName,
@@ -417,9 +412,24 @@ public class VaultSCM extends SCM {
             throws IOException, InterruptedException {
         LOG.log(Level.INFO, "project name = " + build.getProject().getDisplayName() + ", build name = " + build.getDisplayName());
 
-        // first get current version, then use GETVERSION so that the folder version property retrieved from vault and the files on disk are perfectly in sync
-        VaultObjectProperties objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
-        String folderVersion = objectProperties.version;
+        VaultObjectProperties objectProperties = null;
+        String folderVersion = "";
+        String specificFolderVersion = null;
+
+        // first check if we're asked to get a specific folder version
+        VariableResolver<String> resolver = build.getBuildVariableResolver();
+        specificFolderVersion = resolver.resolve(SPECIFIC_VAULT_FOLDER_VERSION_NAME);
+        specificFolderVersion = specificFolderVersion == null ? "" : specificFolderVersion;
+
+        if (specificFolderVersion.equals("")) {
+            // get current version, then use GETVERSION so that the folder version property retrieved from vault and the files on disk are perfectly in sync
+            objectProperties = getCurrentFolderProperties(launcher, workspace, listener);
+        }
+        else {
+            objectProperties = new VaultObjectProperties();
+            objectProperties.version = specificFolderVersion;
+        }
+        folderVersion = objectProperties.version;
 
         boolean returnValue;
 
@@ -497,7 +507,13 @@ public class VaultSCM extends SCM {
 
             Date now = new Date(); //defaults to current
 
-            returnValue = captureChangeLog(launcher, workspace, listener, lastBuildDate, now, changelogFile);
+            if (specificFolderVersion.equals("")) {
+                returnValue = captureChangeLog(launcher, workspace, listener, lastBuildDate, now, changelogFile);
+            }
+            else {
+                returnValue = true;
+                // no change log as we're checking out a specific remote version
+            }
             
             // already add the revision state to the build, this is mainly done to communicate the current object properties
             // to buildEnvVars()
