@@ -7,6 +7,7 @@ package org.jvnet.hudson.plugins;
 
 import hudson.*;
 import hudson.model.*;
+import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.PollingResult;
@@ -20,6 +21,7 @@ import hudson.util.Secret;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -430,6 +432,18 @@ public class VaultSCM extends SCM {
             objectProperties.version = specificFolderVersion;
         }
         folderVersion = objectProperties.version;
+
+        // compare desired folder version with current one
+        Map<String,String> envVars = new HashMap<String,String>();
+        buildEnvVars(build, envVars);
+        String previousFolderVersion = envVars.get(VAULT_FOLDER_VERSION_NAME);
+        if (previousFolderVersion.equals(folderVersion)) {
+            VaultSCMRevisionState revisionState = new VaultSCMRevisionState(objectProperties);
+            build.addAction(revisionState);
+            listener.getLogger()
+                    .println("Folder version did not change.");
+            return true;
+        }
 
         boolean returnValue;
 
