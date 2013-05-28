@@ -19,6 +19,7 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import java.io.*;
+import java.lang.String;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.HashMap;
@@ -434,9 +435,7 @@ public class VaultSCM extends SCM {
         folderVersion = objectProperties.version;
 
         // compare desired folder version with current one
-        Map<String,String> envVars = new HashMap<String,String>();
-        buildEnvVars(build, envVars);
-        String previousFolderVersion = envVars.get(VAULT_FOLDER_VERSION_NAME);
+        String previousFolderVersion = getPreviousFolderVersion(build);
         if (previousFolderVersion.equals(folderVersion)) {
             VaultSCMRevisionState revisionState = new VaultSCMRevisionState(objectProperties);
             build.addAction(revisionState);
@@ -508,21 +507,8 @@ public class VaultSCM extends SCM {
         int cmdResult = launcher.launch().cmds(argBuildr).envs(build.getEnvironment(TaskListener.NULL)).stdout(listener.getLogger()).pwd(workspace).join();
         if (cmdResult
                 == 0) {
-            final Run<?, ?> lastBuild = build.getPreviousBuild();
-            final Date lastBuildDate;
-
-            if (lastBuild == null) {
-                lastBuildDate = new Date();
-                lastBuildDate.setTime(0); // default to January 1, 1970
-                listener.getLogger().print("Never been built.");
-            } else {
-                lastBuildDate = lastBuild.getTimestamp().getTime();
-            }
-
-            Date now = new Date(); //defaults to current
-
             if (specificFolderVersion.equals("")) {
-                returnValue = captureChangeLog(launcher, workspace, listener, lastBuildDate, now, changelogFile);
+                returnValue = captureChangeLog(launcher, workspace, listener, previousFolderVersion, folderVersion, changelogFile);
             }
             else {
                 returnValue = true;
@@ -543,19 +529,21 @@ public class VaultSCM extends SCM {
         return returnValue;
     }
 
+    private String getPreviousFolderVersion(AbstractBuild<?, ?> build) {
+        Map<String,String> envVars = new HashMap<String,String>();
+        buildEnvVars(build, envVars);
+        return envVars.get(VAULT_FOLDER_VERSION_NAME);
+    }
+
     @Override
     public ChangeLogParser createChangeLogParser() {
         return new VaultSCMChangeLogParser();
     }
 
     private boolean captureChangeLog(Launcher launcher, FilePath workspace,
-            BuildListener listener, Date lastBuildDate, Date currentDate, File changelogFile) throws IOException, InterruptedException {
+            BuildListener listener, String previousFolderVersion, String folderVersion, File changelogFile) throws IOException, InterruptedException {
 
         boolean result = true;
-
-        String latestBuildDate = VAULT_DATETIME_FORMATTER.format(lastBuildDate);
-
-        String today = (VAULT_DATETIME_FORMATTER.format(currentDate));
 
         String pathToVault = getVaultPath(launcher, listener);
 
@@ -594,8 +582,11 @@ public class VaultSCM extends SCM {
                     argBuildr.add("-ssl");
                 }
 
-                argBuildr.add("-enddate", today);
-                argBuildr.add("-begindate", latestBuildDate);
+                if (previousFolderVersion != null && !previousFolderVersion.equals("")) {
+                    // we need to begin the history with the next version after the previous one
+                    argBuildr.add("-beginversion", String.valueOf(Integer.parseInt(previousFolderVersion)+1));
+                }
+                argBuildr.add("-endversion", folderVersion);
                 argBuildr.add(this.path);
 
                 int cmdResult = launcher.launch().cmds(argBuildr).envs(new String[0]).stdout(bos).pwd(workspace).join();
