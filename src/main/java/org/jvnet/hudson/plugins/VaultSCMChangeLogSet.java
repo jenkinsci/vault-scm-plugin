@@ -160,7 +160,13 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
         public String getUrl() {
             AbstractProject<?,?> project = (AbstractProject<?,?>)getParent().build.getParent();
             VaultSCM scm = (VaultSCM)project.getScm();
-            return scm.getServerName();
+            String url = new String();
+            if (scm.getSslEnabled()) {
+                url += "https://";
+            } else {
+                url += "http://";
+            }
+            return url + scm.getServerName();
         }
         
         public String getPath() {

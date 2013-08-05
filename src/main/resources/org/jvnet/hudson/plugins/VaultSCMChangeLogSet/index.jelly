@@ -14,7 +14,7 @@
           <a name="detail${loop.index}"></a>
           <div class="changeset-message">
             <b>
-              ${cs.date}: Transaction <a href="http://${cs.url}/VaultService/VaultWeb/TransactionDetails.aspx?repid=${cs.repId}&amp;txid=${cs.txId}">${cs.txId}</a>
+              ${cs.date}: Transaction <a href="${cs.url}/VaultService/VaultWeb/TransactionDetails.aspx?repid=${cs.repId}&amp;txid=${cs.txId}">${cs.txId}</a>
               by <a href="${rootURL}/${cs.author.url}/">${cs.author}</a>
             </b><br/>
             ${cs.msgAnnotated}
@@ -27,8 +27,8 @@
           	<t:editTypeIcon type="${item.editType}" />
           </td>
           <td>
-          	<a href="http://${cs.url}/VaultService/VaultWeb/VaultHistory.aspx?File=${cs.repId}${cs.path}/${item.path}">${item.path}</a> 
-            (<a href="http://${cs.url}/VaultService/VaultWeb/GetFile.aspx?repid=${cs.repId}&amp;path=${cs.path}/${item.path}&amp;version=${item.version}">version ${item.version}</a>)
+          	<a href="${cs.url}/VaultService/VaultWeb/VaultHistory.aspx?File=${cs.repId}${cs.path}/${item.path}">${item.path}</a>
+            (<a href="${cs.url}/VaultService/VaultWeb/GetFile.aspx?repid=${cs.repId}&amp;path=${cs.path}/${item.path}&amp;version=${item.version}">version ${item.version}</a>)
           </td>
         </tr>
       </j:forEach>
