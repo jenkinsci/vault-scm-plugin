@@ -31,6 +31,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import hudson.util.VariableResolver;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -582,7 +583,7 @@ public class VaultSCM extends SCM {
                     argBuildr.add("-ssl");
                 }
 
-                if (previousFolderVersion != null && !previousFolderVersion.equals("")) {
+                if (StringUtils.isNumeric(previousFolderVersion)) {
                     // we need to begin the history with the next version after the previous one
                     argBuildr.add("-beginversion", String.valueOf(Integer.parseInt(previousFolderVersion)+1));
                 }
