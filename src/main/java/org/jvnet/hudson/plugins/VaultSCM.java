@@ -148,11 +148,11 @@ public class VaultSCM extends SCM {
         this.sslEnabled = sslEnabled;
     }
 
-    public Boolean getVersboseEnabled() {
+    public Boolean getVerboseEnabled() {
         return verboseEnabled;
     }
 
-    public void setverboseEnabled(Boolean verboseEnabled) {
+    public void setVerboseEnabled(Boolean verboseEnabled) {
         this.verboseEnabled = verboseEnabled;
     }
 
