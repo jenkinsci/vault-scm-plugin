@@ -6,17 +6,24 @@
 package org.jvnet.hudson.plugins;
 
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.EditType;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+
 import org.jvnet.hudson.plugins.VaultSCMChangeLogSet.VaultSCMChangeLogSetEntry;
 import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSetEntry> {
-
+    
     protected VaultSCMChangeLogSet(AbstractBuild<?, ?> build) {
         super(build);
         changes = new ArrayList<VaultSCMChangeLogSetEntry>();
@@ -39,36 +46,57 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
     public static class VaultSCMChangeLogSetEntry extends ChangeLogSet.Entry {
 
         @SuppressWarnings("rawtypes")
-        public VaultSCMChangeLogSetEntry(String comment, String version, String date, ChangeLogSet parent, String userName) {
-            this.affectedFile = "User defined path";
+        public VaultSCMChangeLogSetEntry(ChangeLogSet parent) {
+            affectedFiles = new ArrayList<VaultAffectedFile>();
+            setParent(parent);
+        }
+
+        @SuppressWarnings("rawtypes")
+        public VaultSCMChangeLogSetEntry(String comment, String version, String date, ChangeLogSet parent, String userName, String transactionId, List<VaultAffectedFile> affectedFiles) {
+            this.affectedFiles = new ArrayList<VaultAffectedFile>(affectedFiles);
             this.comment = comment;
             this.version = version;
+            this.transactionId = transactionId;
             this.date = date;
             this.user = User.get(userName);
             setParent(parent);
         }
 
-        public VaultSCMChangeLogSetEntry() {
+        public void addAffectedFile(VaultAffectedFile file) {
+            affectedFiles.add(file);
+        }
+        
+        @Override
+        public Collection<VaultAffectedFile> getAffectedFiles() {
+            return affectedFiles;
         }
 
+        public List<VaultAffectedFile> getItems() {
+            return affectedFiles;
+        }
+        
         @Override
         public String getMsg() {
-            return "Changed: ".concat(" Version: ").concat(version).concat(" Comment: ").concat(comment);
-        }
-
-        public String getVersion() {
-            return version;
-        }
-
-        public String getComment() {
             return comment;
         }
 
         @Override
+        public long getTimestamp() {
+            SimpleDateFormat dateFormat = new SimpleDateFormat();
+            try {
+                return dateFormat.parse(date).getTime();
+            } catch (ParseException e) {
+                return -1;
+            }          
+        }
+        
+        @Override
         public Collection<String> getAffectedPaths() {
-            Collection<String> col = new ArrayList<String>();
-            col.add("user defined path");
-            return col;
+            Collection<String> paths = new ArrayList<String>(affectedFiles.size());
+            for (AffectedFile file : affectedFiles) {
+                paths.add(file.getPath());
+            }
+            return paths;
         }
 
         @Override
@@ -79,26 +107,117 @@ public final class VaultSCMChangeLogSet extends ChangeLogSet<VaultSCMChangeLogSe
             return user;
         }
 
+        @Override
+        public String getCommitId() {
+            return transactionId;
+        }
+        
         @Exported
-        public EditType getEditType() {
-            if (action.equalsIgnoreCase("delete")) {
-                return EditType.DELETE;
-            }
-            if (action.equalsIgnoreCase("add")) {
-                return EditType.ADD;
-            }
-            return EditType.EDIT;
+        public String getFolderVersion() {
+            return version;
+        }
+        
+        public String getTransactionId() {
+            return transactionId;
         }
 
-        @Exported
-        String getPath() {
-            return affectedFile;
+        public void setTransactionId(String transactionId) {
+            this.transactionId = transactionId;
         }
-        private String comment;
-        String affectedFile;
+
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        public User getUser() {
+            return user;
+        }
+
+        public void setUser(User user) {
+            this.user = user;
+        }
+
+        public void setComment(String comment) {
+            this.comment = comment;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public String getComment() {
+            return comment;
+        }
+        
+        public String getTxId() {
+            return transactionId;
+        }
+
+        public String getUrl() {
+            AbstractProject<?,?> project = (AbstractProject<?,?>)getParent().build.getParent();
+            VaultSCM scm = (VaultSCM)project.getScm();
+            String url = new String();
+            if (scm.getSslEnabled()) {
+                url += "https://";
+            } else {
+                url += "http://";
+            }
+            return url + scm.getServerName();
+        }
+        
+        public String getPath() {
+            AbstractProject<?,?> project = (AbstractProject<?,?>)getParent().build.getParent();
+            VaultSCM scm = (VaultSCM)project.getScm();
+            return scm.getPath();
+        }
+        
+        public String getRepId() {
+            AbstractProject<?,?> project = (AbstractProject<?,?>)getParent().build.getParent();
+            VaultSCM scm = (VaultSCM)project.getScm();
+            return scm.getRepositoryId();
+        }
+        
+        String comment;
         String version;
+        String transactionId;
         String date;
-        private User user;
-        private String action; //default is edit	
+        User user;
+
+        List<VaultAffectedFile> affectedFiles;
+        
+        @ExportedBean
+        public static class VaultAffectedFile implements ChangeLogSet.AffectedFile {
+            String version;
+            String path;
+            EditType editType;
+            
+            public VaultAffectedFile(String path, EditType editType, String version) {
+                super();
+                this.path = path;
+                this.editType = editType;
+                this.version = version;
+            }
+    
+            @Exported
+            public String getPath() {
+                return path;
+            }
+    
+            @Exported
+            public EditType getEditType() {
+                return editType;
+            }
+            
+            @Exported
+            public String getVersion() {
+                return version;
+            }
+            
+        }
     }
+
 }
