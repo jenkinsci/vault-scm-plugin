@@ -26,6 +26,11 @@
             <name>Stuart Whelan</name>
             <email>vault-plugin@somepointinthefuture.co.nz</email>
         </developer>
+        <developer>
+            <id>AxelBehrens</id>
+            <name>Axel Behrens</name>
+            <email>abehrens72@gmail.com</email>
+        </developer>
     </developers>
 
     <distributionManagement>

@@ -123,6 +123,7 @@ public class VaultSCM extends SCM {
     private String userName;
     private Secret password;
     private String repositoryName; //name of the repository
+    private String repositoryId; // ID of the repository, only needed for links to the VaultWeb
     private String vaultName; // The name of the vault installation from global config
     private String path; //path in repository. Starts with $ sign.
     private Boolean sslEnabled; //ssl enabled?
@@ -224,21 +225,16 @@ public class VaultSCM extends SCM {
         return repositoryName;
     }
 
-    public String getRepositoryId() {
-        // TODO: query from vault
-        if (repositoryName.equals("KernelSourceSafe")) {
-            return "2";
-        } else if (repositoryName.equals("Scratch")) {
-            return "6";
-        } else if (repositoryName.equals("SourceSafe")) {
-            return "3";
-        } else
-            return "";      
-    }
-
-
     public void setRepositoryName(String repositoryName) {
         this.repositoryName = repositoryName;
+    }
+
+    public String getRepositoryId() {
+        return repositoryId;
+    }
+
+    public void setRepositoryId(String repositoryId) {
+        this.repositoryId = repositoryId;
     }
 
     public VaultSCMInstallation getVault() {
@@ -262,7 +258,7 @@ public class VaultSCM extends SCM {
 
     @DataBoundConstructor
     public VaultSCM(String serverName, String path, String userName,
-            String password, String repositoryName, String vaultName,
+            String password, String repositoryName, String repositoryId, String vaultName,
             Boolean sslEnabled, Boolean useNonWorkingFolder, String merge,
             String fileTime, Boolean makeWritableEnabled,
             Boolean verboseEnabled) {
@@ -270,6 +266,7 @@ public class VaultSCM extends SCM {
         this.userName = userName;
         this.password = Secret.fromString(password);
         this.repositoryName = repositoryName;
+        this.repositoryId = repositoryId;
         this.vaultName = vaultName;
         this.path = path;
         this.sslEnabled = sslEnabled; //Default to true
