@@ -511,7 +511,7 @@ public class VaultSCM extends SCM {
                 argBuildr.add("-begindate", latestBuildDate);
                 argBuildr.add(this.path);
 
-                int cmdResult = launcher.launch().cmds(argBuildr).envs(new String[0]).stdout(bos).pwd(workspace).join();
+                int cmdResult = launcher.launch().cmds(argBuildr).envs(build.getEnvironment(TaskListener.NULL)).stdout(bos).pwd(workspace).join();
                 if (cmdResult != 0) {
                     listener.fatalError("Changelog failed with exit code " + cmdResult);
                     result = false;
@@ -583,7 +583,7 @@ public class VaultSCM extends SCM {
                 argBuildr.add("-begindate", latestBuildDate);
                 argBuildr.add(this.path);
 
-                int cmdResult = launcher.launch().cmds(argBuildr).envs(new String[0]).stdout(bos).pwd(workspace).join();
+                int cmdResult = launcher.launch().cmds(argBuildr).envs(build.getEnvironment(TaskListener.NULL)).stdout(bos).pwd(workspace).join();
                 if (cmdResult != 0) {
                     listener.fatalError("Determine changes count failed with exit code " + cmdResult);
                     result = 0;
